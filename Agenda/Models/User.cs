@@ -10,6 +10,7 @@ namespace Agenda.Models
         public string Email { get; set; }
         public string Phone { get; set; }
         public bool IsAdm { get; set; }
+        public ICollection<Event> Events { get; set; }
 
     }
 }
