@@ -1,4 +1,6 @@
-﻿namespace Agenda.Models
+﻿using Agenda.ViewModels;
+
+namespace Agenda.Models
 {
     public class Event
     {
@@ -11,5 +13,18 @@
         public bool IsDeleted { get; set; } = false;
         public int UserId { get; set; }
         public virtual User User { get; set; }
+
+        public Event() {}
+
+        public Event(CreateEventData data)
+        {
+            Title = data.Title;
+            Description = data.Description;
+            CreatedAt = DateTime.UtcNow;
+            Start = data.Start;
+            End = data.End;
+            IsDeleted = data.IsDeleted;
+            UserId = data.UserId;
+        }
     }
 }
