@@ -9,7 +9,7 @@ namespace Agenda.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [AllowAnonymous]
     public class AgendaController : ControllerBase
     {
         private readonly EventService _eventService;
@@ -34,7 +34,7 @@ namespace Agenda.Controllers
             return Ok(response);
         }
 
-        [HttpPut]
+        [HttpPost]
         [Route("create")]
         public async Task<IActionResult> Create([FromBody] CreateEventData data)
         {

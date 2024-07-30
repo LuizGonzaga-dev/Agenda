@@ -53,7 +53,7 @@ namespace Agenda.Services
                 return new EventResponseViewModel
                 {
                     Success = true,
-                    Message = "Usuário criado com sucesso!",
+                    Message = "Evento criado com sucesso!",
                     Events = new List<CreateEventData>() { data }
                 };
             }
@@ -62,7 +62,7 @@ namespace Agenda.Services
                 return new EventResponseViewModel
                 {
                     Success = false,
-                    Message = "Não foi possível criar o usuário!",
+                    Message = "Não foi possível criar o evento!",
                 };
             }
         }
@@ -167,7 +167,7 @@ namespace Agenda.Services
                     };
                 }
 
-                var eventsData = await _db.Events.Where(x => x.UserId == user.UserId && x.IsDeleted != true)?.Select(u => new CreateEventData(u)).ToListAsync();
+                var eventsData = await _db.Events.Where(x => x.UserId == user.UserId && x.IsDeleted != true).Select(u => new CreateEventData(u)).ToListAsync();
 
                 return new EventResponseViewModel
                 {

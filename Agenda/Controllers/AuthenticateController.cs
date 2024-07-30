@@ -12,7 +12,7 @@ using System.Security.Claims;
 namespace Agenda.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class AuthenticateController : ControllerBase
     {
         private readonly IConfiguration _configuration;
@@ -57,7 +57,7 @@ namespace Agenda.Controllers
 
             var result = await _userManager.CreateAsync(newUser, model.Password);
 
-            //erro ao criae usuanio no banco
+            //erro ao criar usuaio no banco
             if (!result.Succeeded) 
             {
                 return StatusCode(
