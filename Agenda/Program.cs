@@ -60,7 +60,7 @@ builder.Services.AddCors(options =>
                .AllowAnyHeader();
     });
 });
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers()
 .AddJsonOptions(opt =>
     {
@@ -100,6 +100,7 @@ builder.Services.AddSwaggerGen(opt =>
 
 //adiciona serviços
 builder.Services.AddScoped<EventService>();
+builder.Services.AddScoped<UserService>();
 
 var app = builder.Build();
 

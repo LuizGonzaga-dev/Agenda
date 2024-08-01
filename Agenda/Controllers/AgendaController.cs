@@ -3,26 +3,30 @@ using Agenda.Services;
 using Agenda.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Agenda.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [AllowAnonymous]
+    [Authorize]
     public class AgendaController : ControllerBase
     {
         private readonly EventService _eventService;
-        public AgendaController(EventService eventService) 
+        private readonly UserManager<IdentityUser> _userManager;
+        public AgendaController(EventService eventService, UserManager<IdentityUser> userManager) 
         {
             _eventService = eventService;
+            _userManager = userManager;
         }
 
         [HttpGet]
         [Route("index")]
-        public async Task<IActionResult> Index(int userId)
+        public async Task<IActionResult> Index()
         {
-            var response = await _eventService.GetAllAsync(userId);
+            var identityUserId = _userManager.GetUserId(User);
+            var response = await _eventService.GetAllAsync(identityUserId);
             return Ok(response);
         }
 
@@ -38,7 +42,8 @@ namespace Agenda.Controllers
         [Route("create")]
         public async Task<IActionResult> Create([FromBody] CreateEventData data)
         {
-            var response = await _eventService.CreateAsync(data, data.UserId);
+            var identityUserId = _userManager.GetUserId(User);
+            var response = await _eventService.CreateAsync(data, identityUserId);
             return Ok(response);
         }
 

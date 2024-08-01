@@ -2,9 +2,11 @@
 using Agenda.Data;
 using Agenda.Models;
 using Agenda.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -13,6 +15,7 @@ namespace Agenda.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [AllowAnonymous]
     public class AuthenticateController : ControllerBase
     {
         private readonly IConfiguration _configuration;
@@ -30,7 +33,7 @@ namespace Agenda.Controllers
 
         [HttpPost]
         [Route("register")]
-        public async Task<IActionResult> CreateUserAsync([FromBody] User model)
+        public async Task<IActionResult> CreateUserAsync([FromBody] CreateUserViewModel model)
         {
             var userOnDb = await _userManager.FindByEmailAsync(model.Email);
 
@@ -48,14 +51,14 @@ namespace Agenda.Controllers
             }
 
             //usuario nao existe
-            IdentityUser newUser = new IdentityUser
+            IdentityUser newIdentityUser = new IdentityUser
             {
                 SecurityStamp = Guid.NewGuid().ToString(),
                 Email = model.Email,
                 UserName = model.Name,
             };
 
-            var result = await _userManager.CreateAsync(newUser, model.Password);
+            var result = await _userManager.CreateAsync(newIdentityUser, model.Password);
 
             //erro ao criar usuaio no banco
             if (!result.Succeeded) 
@@ -70,16 +73,41 @@ namespace Agenda.Controllers
                 );
             }
 
-            var role = model.IsAdm ? UserRoles.Admin : UserRoles.User;
+            var user = new User
+            {
+                Email = model.Email,
+                Password = model.Password,
+                IdentityUserId = newIdentityUser.Id,
+                Name = model.Name,
+            };
 
-            await AddRoleAsync(newUser, role);
+            var role = UserRoles.User;
+            if (model.IsAdm != null)
+            {
+                role = (bool) model.IsAdm ? UserRoles.Admin : UserRoles.User;
+            }
+                
 
-            model.IdentityUserId = newUser.Id;
+            await AddRoleAsync(newIdentityUser, role);
 
-            await _db.Users.AddAsync(model);
-            await _db.SaveChangesAsync();
+            user.IdentityUserId = newIdentityUser.Id;
 
-            return Ok(new ResponseViewModel { Success = true, Message = "Usuário criado com sucesso!" });
+            try
+            {
+                await _db.Users.AddAsync(user);
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception ex) {
+                var par = "sd";
+            }
+            var userAuthClaims = await GetUserAuthClaims(newIdentityUser);
+            var userToken = GetToken(userAuthClaims);
+
+            return Ok(new ResponseViewModel { 
+                Success = true, 
+                Message = "Usuário criado com sucesso!", 
+                TokenInfo =  userToken
+            });
         }
 
         [HttpPost]
@@ -92,19 +120,19 @@ namespace Agenda.Controllers
 
             if (user is not null && isPassword) 
             {
-                var authClaims = new List<Claim>
+                var userEvents = await _db.Events.Where(e => e.User.IdentityUserId == user.Id && e.IsDeleted != true).ToListAsync();
+                var authClaims = await GetUserAuthClaims(user);
+
+                return Ok(new ResponseViewModel { Success = true, TokenInfo = GetToken(authClaims), Events = userEvents });
+            }
+
+            if(user is null || !isPassword)
+            {
+                return Ok(new ResponseViewModel
                 {
-                    new Claim (ClaimTypes.Name, user.UserName),
-                    new Claim (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim (ClaimTypes.Email, user.Email)
-                };
-
-                var userRoles = await _userManager.GetRolesAsync(user);
-
-                foreach (var role in userRoles)
-                    authClaims.Add(new Claim(ClaimTypes.Role, role));
-
-                return Ok(new ResponseViewModel { Success = true, Data = GetToken(authClaims) });
+                    Success = false,
+                    Message = "Email e/ou senha inválidos!"
+                });
             }
 
             return Unauthorized();
@@ -127,6 +155,23 @@ namespace Agenda.Controllers
                 Token = new JwtSecurityTokenHandler().WriteToken(token),
                 ValidTo = token.ValidTo
             };
+        }
+
+        private async Task<List<Claim>> GetUserAuthClaims(IdentityUser user)
+        {
+            var authClaims = new List<Claim>
+            {
+                new Claim (ClaimTypes.Name, user.UserName),
+                new Claim (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim (ClaimTypes.Email, user.Email)
+            };
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            foreach (var role in userRoles)
+                authClaims.Add(new Claim(ClaimTypes.Role, role));
+
+            return authClaims;
         }
 
 

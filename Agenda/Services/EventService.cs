@@ -11,13 +11,15 @@ namespace Agenda.Services
     {
         private readonly AgendaDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
-        public EventService(AgendaDbContext db, UserManager<IdentityUser> userManager)
+        private readonly UserService _userService;
+        public EventService(AgendaDbContext db, UserManager<IdentityUser> userManager, UserService userService)
         {
             _db = db;
             _userManager = userManager;
+            _userService = userService;
         }
 
-        public async Task<EventResponseViewModel> CreateAsync([FromBody] CreateEventData data, int UserId)
+        public async Task<EventResponseViewModel> CreateAsync([FromBody] CreateEventData data, string identityUserId)
         {
             try
             {
@@ -30,7 +32,7 @@ namespace Agenda.Services
                     };
                 }
 
-                var user = await _db.Users.FirstOrDefaultAsync(x => x.UserId == UserId);
+                var user = await _db.Users.FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId);
 
                 if (user is null)
                 {
@@ -41,7 +43,7 @@ namespace Agenda.Services
                     };
                 };
 
-                data.UserId = UserId;
+                data.UserId = user.UserId;
 
                 Event ev = new Event(data);
 
@@ -152,11 +154,11 @@ namespace Agenda.Services
             }
         }
 
-        public async Task<EventResponseViewModel> GetAllAsync(int userId)
+        public async Task<EventResponseViewModel> GetAllAsync(string identityUserId)
         {
             try
             {
-                var user = await _db.Users.FirstOrDefaultAsync(x => x.UserId == userId);
+                var user = await _db.Users.FirstOrDefaultAsync(x => x.IdentityUserId == identityUserId);
 
                 if(user is null)
                 {
